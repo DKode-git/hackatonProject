@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FitNexus | Next Gen Health Tracking</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "sans-serif"],
+            },
+            colors: {
+              brand: {
+                dark: "#0f172a", // Slate 900
+                card: "#1e293b", // Slate 800
+                primary: "#38bdf8", // Sky 400
+                accent: "#818cf8", // Indigo 400
+                glow: "rgba(56, 189, 248, 0.5)",
+              },
+            },
+            animation: {
+              float: "float 6s ease-in-out infinite",
+              "pulse-glow": "pulse-glow 3s infinite",
+              "slide-up": "slideUp 0.8s ease-out forwards",
+            },
+            keyframes: {
+              float: {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-20px)" },
+              },
+              "pulse-glow": {
+                "0%, 100%": { boxShadow: "0 0 10px rgba(56, 189, 248, 0.2)" },
+                "50%": { boxShadow: "0 0 25px rgba(56, 189, 248, 0.6)" },
+              },
+              slideUp: {
+                "0%": { opacity: "0", transform: "translateY(30px)" },
+                "100%": { opacity: "1", transform: "translateY(0)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      body {
+        background-color: #0f172a;
+        color: #f8fafc;
+        overflow-x: hidden;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0f172a;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #38bdf8;
+        border-radius: 4px;
+      }
+
+      /* Glassmorphism Utilities */
+      .glass-panel {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .neon-border {
+        border: 1px solid transparent;
+        transition: all 0.3s ease;
+      }
+      .neon-border:hover {
+        border-color: #38bdf8;
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+      }
+
+      /* Loader */
+      .loader {
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        border-top: 3px solid #38bdf8;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hidden-init {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.8s ease-out,
+          transform 0.8s ease-out;
+      }
+      .visible-anim {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+  <body class="antialiased">
+    <script>
+      const API_BASE_URL = "http://127.0.0.1:8000";
+    </script>
+
+    <nav class="fixed w-full z-50 glass-panel border-b border-white/5">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-20">
+          <div class="flex items-center gap-3">
+            <i
+              class="fa-solid fa-bolt text-brand-primary text-2xl animate-pulse"
+            ></i>
+            <span class="text-2xl font-bold tracking-tight text-white"
+              >Fit<span class="text-brand-primary">Nexus</span></span
+            >
+          </div>
+
+          <div class="hidden md:block">
+            <div class="ml-10 flex items-baseline space-x-8">
+              <a
+                href="#features"
+                class="hover:text-brand-primary transition-colors px-3 py-2 rounded-md text-sm font-medium"
+                >Features</a
+              >
+              <a
+                href="#testimonials"
+                class="hover:text-brand-primary transition-colors px-3 py-2 rounded-md text-sm font-medium"
+                >Testimonials</a
+              >
+              <a
+                href="#pricing"
+                class="hover:text-brand-primary transition-colors px-3 py-2 rounded-md text-sm font-medium"
+                >Pricing</a
+              >
+            </div>
+          </div>
+
+          <div class="hidden md:block">
+            <button
+              onclick="handleLogin()"
+              class="bg-transparent border border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-brand-dark px-5 py-2 rounded-full font-semibold transition-all duration-300"
+            >
+              Sign In
+            </button>
+            <button
+              onclick="scrollToPricing()"
+              class="ml-3 bg-brand-primary text-brand-dark hover:bg-white hover:text-brand-dark px-5 py-2 rounded-full font-bold shadow-[0_0_15px_rgba(56,189,248,0.5)] transition-all duration-300 transform hover:scale-105"
+            >
+              Get Started
+            </button>
+          </div>
+
+          <div class="-mr-2 flex md:hidden">
+            <button
+              type="button"
+              onclick="toggleMobileMenu()"
+              class="text-gray-300 hover:text-white p-2"
+            >
+              <i class="fa-solid fa-bars text-2xl"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="mobile-menu"
+        class="hidden md:hidden glass-panel border-t border-white/10"
+      >
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          <a
+            href="#features"
+            class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+            >Features</a
+          >
+          <a
+            href="#pricing"
+            class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+            >Pricing</a
+          >
+          <button
+            onclick="handleLogin()"
+            class="w-full text-left text-brand-primary block px-3 py-2 rounded-md text-base font-medium"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+      <div
+        class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-brand-primary blur-[128px] opacity-20"
+      ></div>
+      <div
+        class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-brand-accent blur-[128px] opacity-20"
+      ></div>
+
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div class="text-center lg:text-left hidden-init" id="hero-text">
+            <h1
+              class="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-tight"
+            >
+              Your Body,<br />
+              <span
+                class="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-accent"
+                >Data Driven.</span
+              >
+            </h1>
+            <p class="text-lg text-slate-400 mb-8 max-w-2xl mx-auto lg:mx-0">
+              Stop guessing. Start tracking. The advanced dashboard for athletes
+              who treat their body like a machine.
+            </p>
+            <div
+              class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+            >
+              <button
+                class="bg-brand-primary text-brand-dark px-8 py-4 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(56,189,248,0.4)] hover:shadow-[0_0_30px_rgba(56,189,248,0.6)] transition-all transform hover:-translate-y-1"
+              >
+                Start Free Trial
+              </button>
+              <button
+                class="glass-panel text-white px-8 py-4 rounded-full font-semibold border border-white/20 hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+              >
+                <i class="fa-solid fa-play"></i> Watch Demo
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="relative animate-float hidden-init"
+            id="hero-visual"
+            style="transition-delay: 200ms"
+          >
+            <div
+              class="glass-panel rounded-2xl border border-white/10 p-2 shadow-2xl relative bg-brand-dark/80"
+            >
+              <div
+                class="flex items-center gap-2 px-4 py-2 border-b border-white/5"
+              >
+                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                <div
+                  class="ml-4 bg-slate-800 rounded px-2 py-1 text-xs text-slate-400 w-64"
+                >
+                  fitnexus.app/dashboard
+                </div>
+              </div>
+
+              <div class="flex h-[350px]">
+                <div
+                  class="w-20 md:w-48 border-r border-white/5 p-4 flex flex-col gap-4"
+                >
+                  <div
+                    class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2"
+                  >
+                    Menu
+                  </div>
+                  <div
+                    class="flex items-center gap-3 text-brand-primary bg-brand-primary/10 p-2 rounded-lg cursor-pointer"
+                  >
+                    <i class="fa-solid fa-house"></i>
+                    <span class="hidden md:inline font-medium">Home</span>
+                  </div>
+                  <div
+                    class="flex items-center gap-3 text-slate-400 hover:text-white p-2 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <i class="fa-solid fa-chart-simple"></i>
+                    <span class="hidden md:inline font-medium">Stats</span>
+                  </div>
+                  <div
+                    class="flex items-center gap-3 text-slate-400 hover:text-white p-2 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <i class="fa-solid fa-gear"></i>
+                    <span class="hidden md:inline font-medium">Settings</span>
+                  </div>
+                </div>
+
+                <div class="flex-1 p-6 relative">
+                  <div class="flex justify-between items-end mb-4">
+                    <div>
+                      <h3 class="text-xl font-bold text-white">
+                        Calories Burned
+                      </h3>
+                      <p class="text-sm text-slate-400">Weekly Performance</p>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-2xl font-bold text-brand-primary">
+                        12,450
+                      </div>
+                      <div class="text-xs text-green-400">
+                        +12% vs last week
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="h-48 w-full">
+                    <canvas id="heroChart"></canvas>
+                  </div>
+
+                  <div class="absolute bottom-6 right-6">
+                    <button
+                      class="bg-brand-primary hover:bg-white text-brand-dark w-14 h-14 rounded-full shadow-[0_0_15px_rgba(56,189,248,0.6)] flex items-center justify-center text-2xl transition-transform hover:rotate-90"
+                    >
+                      <i class="fa-solid fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="absolute -z-10 top-10 -right-10 w-full h-full border-2 border-brand-accent/20 rounded-2xl"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="py-20 bg-brand-dark relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+            Why FitNexus?
+          </h2>
+          <p class="text-slate-400">
+            Everything you need to dominate your fitness journey.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="glass-panel p-8 rounded-2xl neon-border group">
+            <div
+              class="w-14 h-14 bg-brand-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:bg-brand-primary/20 transition-colors"
+            >
+              <i class="fa-solid fa-bolt text-brand-primary text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-3">
+              Real-time Analytics
+            </h3>
+            <p class="text-slate-400 text-sm leading-relaxed">
+              Track heart rate, pace, and calories with zero latency using our
+              WebSocket powered engine.
+            </p>
+          </div>
+
+          <div class="glass-panel p-8 rounded-2xl neon-border group">
+            <div
+              class="w-14 h-14 bg-purple-500/10 rounded-xl flex items-center justify-center mb-6 group-hover:bg-purple-500/20 transition-colors"
+            >
+              <i class="fa-solid fa-brain text-purple-400 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-3">AI Coaching</h3>
+            <p class="text-slate-400 text-sm leading-relaxed">
+              Our ML algorithms analyze your fatigue levels and suggest the
+              perfect workout intensity.
+            </p>
+          </div>
+
+          <div class="glass-panel p-8 rounded-2xl neon-border group">
+            <div
+              class="w-14 h-14 bg-pink-500/10 rounded-xl flex items-center justify-center mb-6 group-hover:bg-pink-500/20 transition-colors"
+            >
+              <i class="fa-solid fa-users text-pink-400 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-3">
+              Community Challenges
+            </h3>
+            <p class="text-slate-400 text-sm leading-relaxed">
+              Compete on global leaderboards and unlock exclusive badges for
+              your profile.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing" class="py-20 relative overflow-hidden">
+      <div
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-3xl -z-10"
+      ></div>
+
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+            Simple Pricing
+          </h2>
+          <div class="flex justify-center items-center gap-3">
+            <span class="text-slate-400 text-sm">Monthly</span>
+            <div
+              class="w-12 h-6 bg-brand-primary rounded-full relative cursor-pointer opacity-80"
+            >
+              <div
+                class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"
+              ></div>
+            </div>
+            <span class="text-white font-bold text-sm">Yearly (Save 20%)</span>
+          </div>
+        </div>
+
+        <div
+          id="pricing-container"
+          class="grid grid-cols-1 md:grid-cols-3 gap-8"
+        >
+          <div class="col-span-3 flex justify-center py-12">
+            <div class="loader"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section
+      id="testimonials"
+      class="py-20 bg-brand-card border-t border-white/5"
+    >
+      <div class="max-w-4xl mx-auto px-4 text-center">
+        <i
+          class="fa-solid fa-quote-left text-4xl text-brand-primary opacity-30 mb-6"
+        ></i>
+        <h3
+          class="text-2xl md:text-3xl font-medium text-white mb-8"
+          id="testimonial-text"
+        >
+          "FitNexus completely changed how I track my marathon training. The
+          analytics are unmatched."
+        </h3>
+        <div class="flex items-center justify-center gap-4">
+          <img
+            src="https://i.pravatar.cc/150?img=11"
+            alt="User"
+            class="w-12 h-12 rounded-full border-2 border-brand-primary"
+            id="testimonial-img"
+          />
+          <div class="text-left">
+            <div class="text-white font-bold" id="testimonial-name">
+              Sarah Jenkins
+            </div>
+            <div class="text-brand-primary text-sm" id="testimonial-role">
+              Pro Athlete
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-center gap-4 mt-8">
+          <button
+            onclick="prevTestimonial()"
+            class="w-10 h-10 rounded-full glass-panel flex items-center justify-center hover:bg-white/10 transition-colors"
+          >
+            <i class="fa-solid fa-chevron-left text-slate-400"></i>
+          </button>
+          <button
+            onclick="nextTestimonial()"
+            class="w-10 h-10 rounded-full glass-panel flex items-center justify-center hover:bg-white/10 transition-colors"
+          >
+            <i class="fa-solid fa-chevron-right text-slate-400"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bg-brand-dark pt-16 pb-8 border-t border-white/5">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+          <div class="col-span-2 md:col-span-1">
+            <div class="flex items-center gap-2 mb-4">
+              <i class="fa-solid fa-bolt text-brand-primary"></i>
+              <span class="text-xl font-bold text-white">FitNexus</span>
+            </div>
+            <p class="text-slate-500 text-sm">
+              Building the future of human performance tracking.
+            </p>
+          </div>
+          <div>
+            <h4 class="text-white font-bold mb-4">Product</h4>
+            <ul class="space-y-2 text-slate-500 text-sm">
+              <li>
+                <a href="#" class="hover:text-brand-primary transition-colors"
+                  >Features</a
+                >
+              </li>
+              <li>
+                <a href="#" class="hover:text-brand-primary transition-colors"
+                  >Integrations</a
+                >
+              </li>
+              <li>
+                <a href="#" class="hover:text-brand-primary transition-colors"
+                  >Pricing</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-white font-bold mb-4">Company</h4>
+            <ul class="space-y-2 text-slate-500 text-sm">
+              <li>
+                <a href="#" class="hover:text-brand-primary transition-colors"
+                  >About</a
+                >
+              </li>
+              <li>
+                <a href="#" class="hover:text-brand-primary transition-colors"
+                  >Careers</a
+                >
+              </li>
+              <li>
+                <a href="#" class="hover:text-brand-primary transition-colors"
+                  >Contact</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-white font-bold mb-4">Social</h4>
+            <div class="flex space-x-4">
+              <a
+                href="#"
+                class="text-slate-500 hover:text-white transition-colors"
+                ><i class="fa-brands fa-twitter"></i
+              ></a>
+              <a
+                href="#"
+                class="text-slate-500 hover:text-white transition-colors"
+                ><i class="fa-brands fa-instagram"></i
+              ></a>
+              <a
+                href="#"
+                class="text-slate-500 hover:text-white transition-colors"
+                ><i class="fa-brands fa-github"></i
+              ></a>
+            </div>
+          </div>
+        </div>
+        <div
+          class="border-t border-white/5 pt-8 text-center text-slate-600 text-xs"
+        >
+          &copy; 2024 FitNexus Inc. All rights reserved.
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // --- 1. UI ANIMATIONS & OBSERVERS ---
+      document.addEventListener("DOMContentLoaded", () => {
+        // Hero Animations
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("visible-anim");
+                entry.target.classList.remove("hidden-init");
+              }
+            });
+          },
+          { threshold: 0.1 },
+        );
+
+        document
+          .querySelectorAll(".hidden-init")
+          .forEach((el) => observer.observe(el));
+
+        // Initialize Chart
+        initHeroChart();
+
+        // Fetch Data
+        fetchPricing();
+      });
+
+      // --- 2. CHART.JS CONFIG (HERO MOCKUP) ---
+      function initHeroChart() {
+        const ctx = document.getElementById("heroChart").getContext("2d");
+
+        // Gradient for bars
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, "#38bdf8");
+        gradient.addColorStop(1, "#818cf8");
+
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            datasets: [
+              {
+                label: "Calories",
+                data: [1200, 1900, 1500, 2200, 1800, 2400, 1450],
+                backgroundColor: gradient,
+                borderRadius: 4,
+                barThickness: 10,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: "rgba(255,255,255,0.05)" },
+                ticks: { color: "#94a3b8", font: { size: 10 } },
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: "#94a3b8", font: { size: 10 } },
+              },
+            },
+            animation: {
+              duration: 2000,
+              easing: "easeOutQuart",
+            },
+          },
+        });
+      }
+
+      // --- 3. DATA HANDLING (PRICING) ---
+      async function fetchPricing() {
+        const container = document.getElementById("pricing-container");
+
+        // Simulating API Latency
+        await new Promise((r) => setTimeout(r, 1500));
+
+        try {
+          // In production, uncomment:
+          // const response = await fetch(`${API_BASE_URL}/api/pricing`);
+          // const data = await response.json();
+
+          // MOCK DATA for Demonstration
+          const plans = [
+            {
+              name: "Starter",
+              price: "$0",
+              features: [
+                "Basic Analytics",
+                "3 Workouts/wk",
+                "Community Access",
+              ],
+            },
+            {
+              name: "Pro",
+              price: "$29",
+              features: [
+                "Advanced Stats",
+                "Unlimited Workouts",
+                "AI Coach",
+                "Export Data",
+              ],
+              featured: true,
+            },
+            {
+              name: "Elite",
+              price: "$99",
+              features: [
+                "1-on-1 Coaching",
+                "Custom Nutrition",
+                "API Access",
+                "Priority Support",
+              ],
+            },
+          ];
+
+          container.innerHTML = plans
+            .map(
+              (plan) => `
+                    <div class="glass-panel rounded-2xl p-8 flex flex-col relative ${plan.featured ? "border-brand-primary shadow-[0_0_30px_rgba(56,189,248,0.2)] transform md:-translate-y-4" : "border-white/5"}">
+                        ${plan.featured ? '<div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-brand-primary text-brand-dark px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Most Popular</div>' : ""}
+                        
+                        <h3 class="text-xl font-bold text-white mb-2">${plan.name}</h3>
+                        <div class="text-4xl font-bold text-white mb-6">${plan.price}<span class="text-lg text-slate-500 font-normal">/mo</span></div>
+                        
+                        <ul class="space-y-4 mb-8 flex-1">
+                            ${plan.features
+                              .map(
+                                (f) => `
+                                <li class="flex items-center gap-3 text-slate-300 text-sm">
+                                    <i class="fa-solid fa-check text-brand-primary"></i> ${f}
+                                </li>
+                            `,
+                              )
+                              .join("")}
+                        </ul>
+                        
+                        <button class="w-full py-3 rounded-lg font-bold transition-all ${plan.featured ? "bg-brand-primary text-brand-dark hover:bg-white" : "bg-white/5 text-white hover:bg-white/10"}">
+                            Choose ${plan.name}
+                        </button>
+                    </div>
+                `,
+            )
+            .join("");
+        } catch (error) {
+          container.innerHTML = `
+                    <div class="col-span-3 text-center text-red-400 p-8 glass-panel rounded-xl">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i><br>
+                        Failed to load pricing. Please try again later.
+                    </div>
+                `;
+          console.error("Pricing fetch failed:", error);
+        }
+      }
+
+      // --- 4. DATA HANDLING (AUTH) ---
+      async function handleLogin() {
+        const btn = event.currentTarget;
+        const originalText = btn.innerText;
+
+        // Set Loading State
+        btn.innerHTML =
+          '<div class="loader" style="width:16px; height:16px; border-width:2px;"></div>';
+        btn.disabled = true;
+
+        try {
+          // Simulate API Call
+          const res = await fetch(`${API_BASE_URL}/api/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ timestamp: Date.now() }),
+          }).catch(() => {}); // Catching because localhost:8000 might not exist
+
+          setTimeout(() => {
+            alert("Redirecting to Dashboard... (Demo Mode)");
+            btn.innerText = originalText;
+            btn.disabled = false;
+          }, 1000);
+        } catch (e) {
+          btn.innerText = "Error";
+          setTimeout(() => (btn.innerText = originalText), 2000);
+        }
+      }
+
+      // --- 5. TESTIMONIAL LOGIC ---
+      const testimonials = [
+        {
+          text: "FitNexus completely changed how I track my marathon training. The analytics are unmatched.",
+          name: "Sarah Jenkins",
+          role: "Pro Athlete",
+          img: "11",
+        },
+        {
+          text: "The AI coaching feature feels like having a personal trainer in my pocket 24/7.",
+          name: "Mike Ross",
+          role: "Crossfit Coach",
+          img: "32",
+        },
+        {
+          text: "Finally, a dashboard that looks as good as it performs. Dark mode is perfection.",
+          name: "Jessica Lee",
+          role: "UI Designer",
+          img: "44",
+        },
+      ];
+      let currentTestimonial = 0;
+
+      function updateTestimonial(idx) {
+        const t = testimonials[idx];
+        const textEl = document.getElementById("testimonial-text");
+        const nameEl = document.getElementById("testimonial-name");
+        const roleEl = document.getElementById("testimonial-role");
+        const imgEl = document.getElementById("testimonial-img");
+
+        // Fade out
+        textEl.style.opacity = 0;
+
+        setTimeout(() => {
+          textEl.innerText = `"${t.text}"`;
+          nameEl.innerText = t.name;
+          roleEl.innerText = t.role;
+          imgEl.src = `https://i.pravatar.cc/150?img=${t.img}`;
+          // Fade in
+          textEl.style.opacity = 1;
+        }, 300);
+      }
+
+      function nextTestimonial() {
+        currentTestimonial = (currentTestimonial + 1) % testimonials.length;
+        updateTestimonial(currentTestimonial);
+      }
+
+      function prevTestimonial() {
+        currentTestimonial =
+          (currentTestimonial - 1 + testimonials.length) % testimonials.length;
+        updateTestimonial(currentTestimonial);
+      }
+
+      // --- 6. UTILS ---
+      function toggleMobileMenu() {
+        const menu = document.getElementById("mobile-menu");
+        menu.classList.toggle("hidden");
+      }
+
+      function scrollToPricing() {
+        document
+          .getElementById("pricing")
+          .scrollIntoView({ behavior: "smooth" });
+      }
+    </script>
+  </body>
+</html>
